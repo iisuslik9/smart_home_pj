@@ -1,73 +1,143 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-  <title>Умный дом</title>
-  <meta name="viewport" content="width=device-width">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌟 Умный дом</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial; max-width: 600px; margin: 20px auto; padding: 20px; }
-    .control { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
-    input[type=range] { width: 100%; height: 8px; }
-    .value { font-size: 1.2em; font-weight: bold; color: #333; }
-    button { padding: 12px 24px; font-size: 16px; margin: 5px; border: none; border-radius: 6px; cursor: pointer; }
-    .on { background: #4CAF50; color: white; }
-    .off { background: #f44336; color: white; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      max-width: 800px; margin: 0 auto; padding: 20px; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .card { 
+      background: white; margin: 20px 0; padding: 20px; 
+      border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    h1 { text-align: center; color: white; margin-bottom: 30px; }
+    h2 { color: #333; margin-bottom: 15px; }
+    .slider { width: 100%; height: 50px; margin: 10px 0; }
+    .value { font-size: 1.5em; font-weight: bold; color: #4CAF50; text-align: center; }
+    button { 
+      padding: 15px 30px; font-size: 16px; border: none; 
+      border-radius: 10px; cursor: pointer; margin: 5px; 
+      transition: all 0.3s;
+    }
+    .btn-on { background: #4CAF50; color: white; }
+    .btn-off { background: #f44336; color: white; }
+    button:hover { transform: translateY(-2px); }
+    .status { 
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+      gap: 15px; margin: 20px 0;
+    }
+    .status-item { 
+      background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center;
+    }
+    .status-value { font-size: 1.8em; font-weight: bold; color: #2196F3; }
+    canvas { max-height: 400px; }
+    .time { text-align: center; color: white; font-size: 1.2em; margin: 10px 0; }
   </style>
 </head>
 <body>
-  <h1>Умный дом</h1>
-  
-  <div class="control">
-    <h3>LED 1</h3>
-    <input type="range" id="led1" min="0" max="255" value="0">
-    <div class="value" id="led1_val">0</div>
+  <h1>🌟 Умный дом</h1>
+  <div class="time" id="currentTime"></div>
+
+  <!-- Управление -->
+  <div class="card">
+    <h2>🎛️ Управление</h2>
+    
+    <div>
+      <label>LED 1:</label>
+      <input type="range" class="slider" id="led1" min="0" max="255" value="0">
+      <div class="value" id="led1_val">0</div>
+    </div>
+
+    <div>
+      <label>LED 2:</label>
+      <input type="range" class="slider" id="led2" min="0" max="255" value="0">
+      <div class="value" id="led2_val">0</div>
+    </div>
+
+    <div>
+      <label>LED 3:</label>
+      <input type="range" class="slider" id="led3" min="0" max="255" value="0">
+      <div class="value" id="led3_val">0</div>
+    </div>
+
+    <div>
+      <label>RGB цвет:</label>
+      <input type="color" id="rgb" value="#000000">
+      <div class="value" id="rgb_val">#000000</div>
+    </div>
+
+    <button id="strip_btn" class="btn-off">Лента: ВЫКЛ</button>
+    <button id="buzzer_btn" class="btn-off">🎵 Мелодия</button>
   </div>
 
-  <div class="control">
-    <h3>LED 2</h3>
-    <input type="range" id="led2" min="0" max="255" value="0">
-    <div class="value" id="led2_val">0</div>
+  <!-- Статус датчиков -->
+  <div class="card">
+    <h2>📊 Датчики (обновление каждые 3 сек)</h2>
+    <div class="status" id="sensors">
+      <!-- Данные будут здесь -->
+    </div>
   </div>
 
-  <div class="control">
-    <h3>RGB</h3>
-    <input type="color" id="rgb">
-    <div class="value" id="rgb_val">#000000</div>
-  </div>
-
-  <div class="control">
-    <h3>LED Лента</h3>
-    <button id="strip_btn" class="off">ВЫКЛ</button>
-    <div class="value" id="strip_val">Выкл</div>
+  <!-- Графики -->
+  <div class="card">
+    <h2>📈 Графики (последние 50 измерений)</h2>
+    anvas id="chart"></canvas>
   </div>
 
   <script>
-    // данные из Supabase
-    const SUPABASE_URL = 'https://yndjuqvejwgxostadikf.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InluZGp1cXZlandneG9zdGFkaWtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2MDQzMzAsImV4cCI6MjA4MTE4MDMzMH0.qRzRvFjnKtpoWIOEhsGWsdqgfz0CexO7cZPxZZP6Tus';
-    
-    // Загрузка текущих значений
+    // ЗАМЕНИТЕ НА СВОИ ДАННЫЕ ИЗ SUPABASE!
+    const SUPABASE_URL = 'https://ВАШ_ПРОЕКТ.supabase.co';
+    const SUPABASE_KEY = 'ВАШ_ANON_KEY';
+
+    let chart;
+
+    // Текущее время
+    function updateTime() {
+      document.getElementById('currentTime').textContent = 
+        new Date().toLocaleString('ru-RU', {timeZone: 'Asia/Bangkok'});
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+
+    // Загрузка управления
     async function loadControls() {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/controls?select=*`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/controls?select=*`, {
+        headers: { 
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
       });
-      const data = await response.json();
+      const data = await res.json();
       if (data.length > 0) {
         const ctrl = data[0];
         document.getElementById('led1').value = ctrl.led1;
         document.getElementById('led1_val').textContent = ctrl.led1;
         document.getElementById('led2').value = ctrl.led2;
         document.getElementById('led2_val').textContent = ctrl.led2;
-        document.getElementById('rgb').value = `#${ctrl.rgb_r.toString(16).padStart(2,'0')}${ctrl.rgb_g.toString(16).padStart(2,'0')}${ctrl.rgb_b.toString(16).padStart(2,'0')}`;
-        document.getElementById('strip_btn').textContent = ctrl.strip ? 'ВКЛ' : 'ВЫКЛ';
-        document.getElementById('strip_btn').className = ctrl.strip ? 'on' : 'off';
-        document.getElementById('strip_val').textContent = ctrl.strip ? 'Вкл' : 'Выкл';
+        document.getElementById('led3').value = ctrl.led3;
+        document.getElementById('led3_val').textContent = ctrl.led3;
+        
+        const rgbHex = `#${ctrl.rgb_r.toString(16).padStart(2,'0')}${ctrl.rgb_g.toString(16).padStart(2,'0')}${ctrl.rgb_b.toString(16).padStart(2,'0')}`;
+        document.getElementById('rgb').value = rgbHex;
+        document.getElementById('rgb_val').textContent = rgbHex;
+        
+        const stripBtn = document.getElementById('strip_btn');
+        stripBtn.textContent = ctrl.strip ? 'Лента: ВКЛ' : 'Лента: ВЫКЛ';
+        stripBtn.className = ctrl.strip ? 'btn-on' : 'btn-off';
       }
     }
-    
+
     // Отправка команды
     async function sendCommand(data) {
       await fetch(`${SUPABASE_URL}/rest/v1/controls?upsert=true`, {
-        method: 'POST',
+        method: 'PATCH',
         headers: {
           'apikey': SUPABASE_KEY,
           'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -77,42 +147,126 @@
         body: JSON.stringify(data)
       });
     }
-    
-    // Обработчики
+
+    // Обработчики слайдеров
     document.getElementById('led1').oninput = (e) => {
       document.getElementById('led1_val').textContent = e.target.value;
       sendCommand({ led1: parseInt(e.target.value) });
     };
-    
     document.getElementById('led2').oninput = (e) => {
       document.getElementById('led2_val').textContent = e.target.value;
       sendCommand({ led2: parseInt(e.target.value) });
     };
-    
+    document.getElementById('led3').oninput = (e) => {
+      document.getElementById('led3_val').textContent = e.target.value;
+      sendCommand({ led3: parseInt(e.target.value) });
+    };
     document.getElementById('rgb').onchange = (e) => {
       const rgb = hexToRgb(e.target.value);
       document.getElementById('rgb_val').textContent = e.target.value;
       sendCommand(rgb);
     };
-    
-    document.getElementById('strip_btn').onclick = async () => {
-      const isOn = document.getElementById('strip_btn').textContent === 'ВЫКЛ';
-      document.getElementById('strip_btn').textContent = isOn ? 'ВКЛ' : 'ВЫКЛ';
-      document.getElementById('strip_btn').className = isOn ? 'on' : 'off';
-      document.getElementById('strip_val').textContent = isOn ? 'Вкл' : 'Выкл';
+
+    // Кнопки
+    document.getElementById('strip_btn').onclick = async (e) => {
+      const isOn = e.target.textContent.includes('ВЫКЛ');
+      e.target.textContent = isOn ? 'Лента: ВКЛ' : 'Лента: ВЫКЛ';
+      e.target.className = isOn ? 'btn-on' : 'btn-off';
       await sendCommand({ strip: isOn });
     };
-    
+
+    document.getElementById('buzzer_btn').onclick = async () => {
+      await sendCommand({ buzzer: true });
+      setTimeout(() => sendCommand({ buzzer: false }), 2000);
+    };
+
     function hexToRgb(hex) {
       const r = parseInt(hex.slice(1,3), 16);
       const g = parseInt(hex.slice(3,5), 16);
       const b = parseInt(hex.slice(5,7), 16);
       return { rgb_r: r, rgb_g: g, rgb_b: b };
     }
-    
-    // Автообновление каждые 2 секунды
+
+    // Загрузка датчиков
+    async function loadSensors() {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/sensor_data?order=created_at.desc&limit=1`, {
+        headers: { 
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      const data = await res.json();
+      if (data.length > 0) {
+        const s = data[0];
+        document.getElementById('sensors').innerHTML = `
+          <div class="status-item">
+            <div>🌡️ Темп. DHT</div>
+            <div class="status-value">${s.temperature_dht?.toFixed(1) || 0}°C</div>
+          </div>
+          <div class="status-item">
+            <div>💧 Влажность</div>
+            <div class="status-value">${s.humidity_dht?.toFixed(1) || 0}%</div>
+          </div>
+          <div class="status-item">
+            <div>🔥 Темп. LM35</div>
+            <div class="status-value">${s.temperature_lm35?.toFixed(1) || 0}°C</div>
+          </div>
+          <div class="status-item">
+            <div>☀️ Свет</div>
+            <div class="status-value">${s.light_resistor || 0}</div>
+          </div>
+          <div class="status-item">
+            <div>💡 Лента</div>
+            <div class="status-value">${s.strip_state ? 'ВКЛ' : 'ВЫКЛ'}</div>
+          </div>
+        `;
+      }
+    }
+
+    // График
+    async function loadChart() {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/sensor_data?order=created_at.desc&limit=50`, {
+        headers: { 
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      const data = await res.json();
+      data.reverse();
+
+      const labels = data.map(d => new Date(d.created_at).toLocaleTimeString());
+      const tempDht = data.map(d => d.temperature_dht || 0);
+      const hum = data.map(d => d.humidity_dht || 0);
+      const light = data.map(d => (d.light_resistor || 0) / 10);
+
+      if (chart) chart.destroy();
+      const ctx = document.getElementById('chart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Темп. DHT (°C)', data: tempDht, borderColor: '#FF6384', tension: 0.4 },
+            { label: 'Влажность (%)', data: hum, borderColor: '#36A2EB', tension: 0.4 },
+            { label: 'Свет (x10)', data: light, borderColor: '#FFCE56', tension: 0.4 }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    // Автообновление
+    setInterval(loadSensors, 3000);
+    setInterval(loadChart, 30000);
     setInterval(loadControls, 2000);
+
+    // Начальная загрузка
     loadControls();
+    loadSensors();
+    loadChart();
   </script>
 </body>
 </html>
